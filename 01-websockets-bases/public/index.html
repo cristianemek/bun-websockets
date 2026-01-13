@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Cliente</title>
+    <link rel="icon" href="./LJPSZCLRj6JkW1bzkVMQ_favicon.ico">
+</head>
+<body>
+    <h1>Hola desde WebSocket Cliente</h1>
+    <p>Hola de nuevo</p>
+
+    <p id="status">Conecting...</p>
+
+    <button id="btn-disconnect">Disconnect</button>
+    <button id="btn-connect">Connect</button>
+
+    <form style="display: none;" id="message-form">
+        <h1>Messages</h1>
+        <input type="text" id="message-input" placeholder="Type your message here..." />
+        <button type="submit">Send</button>
+    </form>
+
+    <ul id="messages"></ul>
+
+    <script>
+        //crear cookies
+
+        const session = {
+            id:1,
+            sessionId: 'Abc123'
+        }
+
+        const jwtToken = 'MiToken-JWT';
+
+        document.cookie = `session=${JSON.stringify(session)}`;
+        document.cookie = `X-Token=${jwtToken}`
+
+        let socket;
+        const status = document.querySelector('#status')
+        const btnDisconnect = document.getElementById('btn-disconnect')
+        const btnConnect = document.getElementById('btn-connect')
+        const messageInput = document.getElementById('message-input')
+        const messagesList = document.getElementById('messages')
+        const form = document.getElementById('message-form')
+        
+        const createWebSocket = () => {
+            const channelId='mi-canal-personalizado'
+            const socket = new WebSocket(`ws://localhost:3100?channelId=${channelId}`)
+
+        socket.onopen = () => {
+            console.log('WebSocket conectado');
+            form.style.display = 'block'
+            status.textContent = 'Conectado'
+
+        };
+
+        socket.onclose = () => {
+            console.log('WebSocket desconectado');
+            form.style.display = 'none'
+            status.textContent = 'Desconectado'
+        }
+
+
+        socket.onerror = (event) => {
+            console.log({error : event});
+        }
+
+        socket.onmessage = (event) => {
+            console.log({event});
+            showMessage(event.data)
+        }
+
+        return socket;
+        }
+
+        socket = createWebSocket()
+
+
+        btnDisconnect.addEventListener('click', () => {
+            if(socket.readyState !== WebSocket.OPEN ) return;
+            socket.close();
+        })
+
+         btnConnect.addEventListener('click', () => {
+            if(socket.readyState === WebSocket.OPEN ) return;
+            socket = createWebSocket();
+        })
+
+        form.addEventListener('submit', (event)=>{
+          event.preventDefault();
+          if (!messageInput.value && messageInput.value.length===0) return;
+          socket.send(messageInput.value)
+        //   showMessage(messageInput.value);
+          messageInput.value = '';
+        })
+
+        const showMessage = (message) => {
+            const li = document.createElement('li')
+            li.textContent = message;
+
+            messagesList.appendChild(li)
+        }
+
+    </script>
+</body>
+</html>
