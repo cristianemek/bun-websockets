@@ -1,4 +1,6 @@
-import type { WebSocketMessage, WebSocketResponse } from "../types";
+import { messageSchema, type MessafeParsed, type MessafePayload } from "../schemas/websocket-message.schema";
+import { partyService } from "../services/party.service";
+import type { PoliticalParty, WebSocketMessage, WebSocketResponse } from "../types";
 
 const createErrorResponse = (error: string): WebSocketResponse => {
   return {
@@ -8,51 +10,97 @@ const createErrorResponse = (error: string): WebSocketResponse => {
 };
 
 //handlers especificos
-const handleAddParty = (payload: unknown): WebSocketResponse => {
+const handleAddParty = (payload: MessafeParsed['payload']): WebSocketResponse => {
+
+  if (!payload?.name || !payload.color || !payload.borderColor){
+    return createErrorResponse('Name, color and borderColor are required')
+  }
+
+  const newParty = partyService.add(payload.name, payload.color, payload.borderColor)
+
   return {
     type: "PARTY_ADDED",
-    payload: {
-      name: "New Party",
-    },
-  };
+    payload: newParty
+  }
 };
 
 const handleGetParties = (): WebSocketResponse => {
   return {
     type: "PARTIES_LIST",
-    payload: null,
+    payload: partyService.getAll(),
   };
 }
 
-const handleUpdateParty = (payload: unknown): WebSocketResponse => {
+const handleUpdateParty = (payload: MessafeParsed['payload']): WebSocketResponse => {
+
+  if (!payload?.id){
+    return createErrorResponse('Party ID is required');
+  }
+
+  const updatedParty = partyService.update(payload.id,{
+    name:payload.name,
+    color:payload.color,
+    borderColor:payload.borderColor,
+    votes:payload.votes,
+  })
+
+  if (!updatedParty){
+    createErrorResponse(`Party with id: ${payload.id} not found`)
+  }
+
   return {
     type: "PARTY_UPDATED",
-    //todo
-    payload: {},
+    payload: updatedParty,
   };
 }
 
-const handleDeleteParty = (payload: unknown): WebSocketResponse => {
+const handleDeleteParty = (payload: MessafeParsed['payload']): WebSocketResponse => {
+  if (!payload?.id){
+   return createErrorResponse(`Party with id: ${payload?.id} not found`)
+  }
+
+  const deleted = partyService.delete(payload.id)
+  if (!deleted){
+    createErrorResponse(`Party with id: ${payload.id} not found or can't be deleted`)
+  }
   return {
     type: "PARTY_DELETED",
-    //todo
-    payload: {},
+    payload: {
+      id: payload.id
+    },
   };
 }
 
-const handleIncrementVotes = (payload: unknown): WebSocketResponse => {
+const handleIncrementVotes = (payload: MessafeParsed['payload']): WebSocketResponse => {
+  if (!payload?.id){
+   return createErrorResponse(`Party with id: ${payload?.id} not found`)
+  }
+
+  const updatedVotes = partyService.incrementVotes(payload.id)
+  if (!updatedVotes){
+    createErrorResponse(`Party with id: ${payload.id} not found or can't increment votes`)
+  }
+
+
   return {
     type: "VOTES_UPDATED",
-    //todo
-    payload: {},
+    payload: updatedVotes,
   };
 }
 
-const handleDecrementVotes = (payload: unknown): WebSocketResponse => {
+const handleDecrementVotes = (payload: MessafeParsed['payload']): WebSocketResponse => {
+  if (!payload?.id){
+   return createErrorResponse(`Party with id: ${payload?.id} not found`)
+  }
+
+  const updatedVotes = partyService.decrementVotes(payload.id)
+  if (!updatedVotes){
+    createErrorResponse(`Party with id: ${payload.id} not found or can't decrement votes`)
+  }
+
   return {
     type: "VOTES_UPDATED",
-    //todo
-    payload: {},
+    payload: updatedVotes,
   };
 }
 
@@ -60,9 +108,17 @@ const handleDecrementVotes = (payload: unknown): WebSocketResponse => {
 export const handleMessage = (message: string): WebSocketResponse => {
   try {
     const jsonData: WebSocketMessage = JSON.parse(message);
-    //TODO: validar objeto json
+    const parsedResult = messageSchema.safeParse(jsonData)
 
-    const { type, payload } = jsonData;
+    if (!parsedResult.success){
+      const errorMessage = parsedResult.error.issues
+      .map(issue => issue.message)
+      .join(', ')
+
+      return createErrorResponse(`Validation error ${errorMessage}`)
+    }
+
+    const { type, payload } = parsedResult.data;
 
     switch (type) {
       case "ADD_PARTY":

@@ -6,6 +6,7 @@
     <title>WebSockets Cliente</title>
 
     <link rel="icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
     <h1>Status</h1>
@@ -95,10 +96,12 @@
       });
 
       const showMessage = (message) => {
-        const li = document.createElement('li');
-        li.textContent = message;
+        const pre = document.createElement('pre');
+        pre.textContent = message;
 
-        messagesContainer.prepend(li);
+        pre.innerHTML = JSON.stringify(JSON.parse(message), null, 2)
+
+        messagesContainer.prepend(pre);
       };
     </script>
   </body>
