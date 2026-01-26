@@ -3,7 +3,7 @@ import { SERVER_CONFIG } from "./config/server-config";
 import indexHtml from "../public/index.html";
 import type { WebSocketData } from "./types";
 import { generateUUID } from "./utils/generate-uuid";
-import { handleMessage } from "./handlers/message.handler";
+import { handleGetParties, handleMessage } from "./handlers/message.handler";
 
 export const createServer = () => {
   const server = Bun.serve<WebSocketData>({
@@ -30,7 +30,8 @@ export const createServer = () => {
       open(ws) {
         console.log(`Client connected: ${ws.data.clientId}`);
         ws.subscribe(SERVER_CONFIG.defaultChannelName);
-        //todo: emitir listado actual de los partidos politicos
+        const responseString = JSON.stringify( handleGetParties() );
+        ws.send(responseString);
       },
       message(ws, message: string) {
         const response = handleMessage(message);
