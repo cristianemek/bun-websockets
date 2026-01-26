@@ -7,13 +7,10 @@ import {
   Tooltip,
   Legend,
   type ChartOptions,
-  type ChartData,
 } from "chart.js";
-import { use, useState } from "react";
 import { Bar } from "react-chartjs-2";
-import type { Party } from "../types";
 import { PartyItem } from "../components/PartyItems";
-import { WebSocketContext } from "../context/WebSocketContext";
+import { useParties } from "../hooks/useParties";
 
 ChartJS.register(
   CategoryScale,
@@ -24,24 +21,19 @@ ChartJS.register(
   Legend,
 );
 
-const PARTY_COLORS = [
-  { bg: "rgba(220, 53, 69, 0.2)", border: "rgb(220, 53, 69)" },
-  { bg: "rgba(0, 123, 255, 0.2)", border: "rgb(0, 123, 255)" },
-  { bg: "rgba(40, 167, 69, 0.2)", border: "rgb(40, 167, 69)" },
-  { bg: "rgba(255, 193, 7, 0.2)", border: "rgb(255, 193, 7)" },
-  { bg: "rgba(255, 152, 0, 0.2)", border: "rgb(255, 152, 0)" },
-  { bg: "rgba(153, 102, 255, 0.2)", border: "rgb(153, 102, 255)" },
-  { bg: "rgba(75, 192, 192, 0.2)", border: "rgb(75, 192, 192)" },
-  { bg: "rgba(255, 99, 132, 0.2)", border: "rgb(255, 99, 132)" },
-];
+// const PARTIES = [
+//   { id: "1", name: "Partido Rojo", votes: 35 },
+//   { id: "2", name: "Partido Azul", votes: 42 },
+//   { id: "3", name: "Partido Verde", votes: 28 },
+//   { id: "4", name: "Partido Amarillo", votes: 23 },
+//   { id: "5", name: "Partido Naranja", votes: 15 },
+// ];
 
-const PARTIES = [
-  { id: "1", name: "Partido Rojo", votes: 35 },
-  { id: "2", name: "Partido Azul", votes: 42 },
-  { id: "3", name: "Partido Verde", votes: 28 },
-  { id: "4", name: "Partido Amarillo", votes: 23 },
-  { id: "5", name: "Partido Naranja", votes: 15 },
-];
+// const initialParties: Party[] = PARTIES.map((party, i) => ({
+//   ...party,
+//   borderColor: PARTY_COLORS[i].border,
+//   color: PARTY_COLORS[i].bg,
+// }));
 
 const chartOptions: ChartOptions<"bar"> = {
   responsive: true,
@@ -80,59 +72,16 @@ const chartOptions: ChartOptions<"bar"> = {
   },
 };
 
-const initialParties: Party[] = PARTIES.map((party, i) => ({
-  ...party,
-  borderColor: PARTY_COLORS[i].border,
-  color: PARTY_COLORS[i].bg,
-}));
-
 export const HomePage = () => {
-  const {status} = use(WebSocketContext)
-  const [parties, setParties] = useState<Party[]>(initialParties);
-
-  const updatePartyName = (id: string, newName: string) => {
-    setParties(prev=> 
-      prev.map( p => p.id === id ? {...p, name:newName } : p )
-    )
-  };
-
-  const updateVotes = (id: string, value: number) => {
-     setParties(prev=> 
-      prev.map( p => p.id === id ? {...p, votes: Math.max(0, p.votes+value) } : p )
-    )
-  };
-
-  const addParty = () => {
-    const color = PARTY_COLORS[parties.length % PARTY_COLORS.length]
-
-    const newParty: Party = {
-      id: `${parties.length+1}`,
-      name: `Nuevo partido ${parties.length+1}`,
-      votes: 0,
-      color: color.bg,
-      borderColor: color.border
-    }
-
-    setParties(prev=> [...prev, newParty])
-  };
-
-  const removeParty = (id: string) => {
-    setParties(prev=> 
-      prev.filter(p=> p.id !== id)
-    )
-  };
-
-  const chartData: ChartData<"bar"> = {
-    labels: parties.map((p) => p.name),
-    datasets: [
-      {
-        data: parties.map((p) => p.votes),
-        backgroundColor: parties.map((c) => c.color),
-        borderColor: parties.map((c) => c.borderColor),
-        borderWidth: 2,
-      },
-    ],
-  };
+  const {
+    addParty,
+    chartData,
+    parties,
+    removeParty,
+    status,
+    updatePartyName,
+    updateVotes,
+  } = useParties();
 
   return (
     <div className="chart-container">
@@ -145,29 +94,22 @@ export const HomePage = () => {
 
       <div className="controls-section">
         <div className="controls-header">
-            <h2>Configuración de partidos</h2>
-            <button 
-            onClick={addParty}
-            >
-              + Agregar partido
-            </button>
+          <h2>Configuración de partidos</h2>
+          <button onClick={addParty}>+ Agregar partido</button>
         </div>
         <div className="party-list">
-          {
-            parties.map(party =>(
-              <PartyItem 
+          {parties.map((party) => (
+            <PartyItem
               key={party.id}
               party={party}
-              onNameChange={ (newName) => updatePartyName(party.id, newName)}
+              onNameChange={(newName) => updatePartyName(party.id, newName)}
               onVotesChange={updateVotes}
               canRemove={parties.length > 1}
-              onRemove={()=>removeParty(party.id)}
-              />
-            ))
-          }
+              onRemove={() => removeParty(party.id)}
+            />
+          ))}
         </div>
       </div>
-
     </div>
   );
 };

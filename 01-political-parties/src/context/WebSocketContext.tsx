@@ -24,7 +24,7 @@ interface WebSocketContextState {
   send: (message: SocketMessage) => void;
 }
 
-type SendType =
+export type SendType =
   | "GET_PARTIES"
   | "ADD_PARTY"
   | "UPDATE_PARTY"
