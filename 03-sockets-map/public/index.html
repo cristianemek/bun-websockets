@@ -25,13 +25,28 @@
 
     <script>
       // Crear cookies
-      const session = {
-        id: 1,
-        sessionId: 'Abc123',
+      // const session = {
+      //   id: 1,
+      //   sessionId: 'Abc123',
+      // };
+      // const jwtToken = 'MiToken-JWT';
+      // document.cookie = `session=${JSON.stringify(session)}`;
+      // document.cookie = `X-Token=${jwtToken}`;
+
+      const name = 'John Doe'
+      const color = 'indigo'
+      const coords = {
+        lat: 40.7128,
+        lng: -74.0060
       };
-      const jwtToken = 'MiToken-JWT';
-      document.cookie = `session=${JSON.stringify(session)}`;
-      document.cookie = `X-Token=${jwtToken}`;
+      document.cookie = `name=${name}`;
+      document.cookie = `color=${color}`;
+      document.cookie = `coords=${JSON.stringify(coords)}`;
+
+      let message= {
+        type: 'GET_CLIENTS',
+        payload: {}
+      }
 
       let socket;
 
