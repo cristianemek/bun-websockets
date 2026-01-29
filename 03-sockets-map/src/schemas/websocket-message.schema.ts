@@ -26,6 +26,12 @@ export const messageSchema = z.discriminatedUnion('type', [
       coords: latLngSchema,
     }),
   }),
+  z.object({
+    type: z.literal('CLIENT_LEFT'),
+    payload: z.object({
+      clientId: z.string('Client ID is required').min(1, 'Client ID cannot be empty'),
+    }),
+  }),
 ]);
 
 // const typeSchema = z.enum([
@@ -60,4 +66,9 @@ export type ClientMovePayload = Extract<
 export type GetClientsPayload = Extract<
   MessageParsed,
   { type: 'GET_CLIENTS' }
+>['payload'];
+
+export type ClientLeftPayload = Extract<
+  MessageParsed,
+  { type: 'CLIENT_LEFT' }
 >['payload'];

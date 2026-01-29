@@ -54,9 +54,8 @@ export type OutgoingWsMessage =
 }
 | {
   type: 'CLIENTS_STATE';
-  payload: {
-    payload: ClientMarker[];
-  };
+  payload: ClientMarker[];
+  
 }
 | {
   type: 'CLIENT_JOINED';

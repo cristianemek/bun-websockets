@@ -1,9 +1,9 @@
 import {
   messageSchema,
+  type ClientMovePayload,
   type ClientRegisterPayload,
-  type MessageParsed,
 } from '../schemas/websocket-message.schema';
-import { myService } from '../services/my-service.service';
+import { clientsService } from '../services/clients.service';
 import type { OutgoingWsMessage } from '../types';
 
 interface HandlerResult {
@@ -25,35 +25,93 @@ export const handleGetClients = (): HandlerResult => {
     personal: [
       {
         type: 'CLIENTS_STATE',
-        payload: [],
+        payload: clientsService.getAllClients(),
       }
     ],
     broadcast: [],
   }
 }
 export const handleClientRegister = (clientId: string, payload:ClientRegisterPayload): HandlerResult => {
+  const newClient = clientsService.registerClient(payload);
+
+  if ('error' in newClient) {
+    return {
+      personal: [createErrorResponse(newClient.error)],
+      broadcast: [],
+    }
+  }
+
+
   return {
-    personal: [],
+    personal: [
+      {
+        type: 'WELCOME',
+        payload: newClient,
+      },
+      {
+        type: 'CLIENTS_STATE',
+        payload: clientsService.getAllClients().filter(c => c.clientId !== clientId),
+      }
+    ],
     broadcast: [
       {
         type: 'CLIENT_JOINED',
-        payload: {
-          clientId,
-          name: payload.name,
-          color: payload.color || 'gray',
-          coords: payload.coords,
-          updatedAt: Date.now(),
-        }
+        payload: newClient,
       }
     ],
   }
 }
-export const handleClientMoved = (clientId, payload): HandlerResult => {
+export const handleClientMoved = (clientId: string, payload: ClientMovePayload): HandlerResult => {
+  const movedClient = clientsService.ClientMoved(clientId, payload);
+
+  if ('error' in movedClient) {
+    return {
+      personal: [createErrorResponse(movedClient.error)],
+      broadcast: [],
+    }
+  }
+
   return {
-    personal: [],
-    broadcast: [],
+    personal: [
+      {
+        type: 'CLIENT_MOVED',
+        payload: {
+          clientId: clientId,
+          coords: movedClient.coords,
+          updatedAt: movedClient.updatedAt,
+        },
+      }
+    ],
+    broadcast: [
+      {
+        type: 'CLIENT_MOVED',
+        payload: movedClient,
+      }
+    ],
   }
 }
+
+export const handleClientLeft = (clientId:string): HandlerResult => {
+  const clientWasRemoved = clientsService.removeClient(clientId);
+
+  if (clientWasRemoved){
+  return {
+    personal: [],
+    broadcast: [
+      {
+        type: 'CLIENT_LEFT',
+        payload: { clientId }
+      }
+    ],
+  }
+}
+  return {
+    personal:[],
+    broadcast:[],
+  }
+}
+
+
 
 //! General Handler o controlador general
 export const handleMessage = (clientId: string, rawMessage: string): HandlerResult => {
@@ -84,6 +142,9 @@ export const handleMessage = (clientId: string, rawMessage: string): HandlerResu
 
       case 'CLIENT_MOVE':
         return handleClientMoved(clientId,payload);
+      
+      case 'CLIENT_LEFT':
+        return handleClientLeft(clientId);
 
       default:
         return {
