@@ -3,7 +3,7 @@ import { SERVER_CONFIG } from './config/server-config';
 import indexHtml from '../public/index.html';
 import { generateUuid } from './utils/generate-uuid';
 import type { WebSocketData } from './types';
-import { handleMessage } from './handlers/message.handler';
+import { handleClientLeft, handleClientRegister, handleMessage } from './handlers/message.handler';
 
 export const createServer = () => {
   const server = Bun.serve<WebSocketData>({
@@ -46,11 +46,17 @@ export const createServer = () => {
         // console.log(`Cliente: ${ws.data.clientId}`);
         //! Suscribir el cliente a un canal por defecto
         ws.subscribe(SERVER_CONFIG.defaultChannelName);
-        // ! (opcional) Aquí se puede emitir el primer mensaje al cliente
-        // Emitir el primer mensaje al cliente que se acaba de conectar
-        // ws.send({ type: 'my_type', payload: { message: 'Some Payload' } });
-        //! Emitir el mensaje a todos los clientes conectados (-1 cliente que se acaba de conectar)
-        // ws.publish(SERVER_CONFIG.defaultChannelName, JSON.stringify(handleGetParties()));
+  
+        const welcomeMessage = handleClientRegister(ws.data.clientId, ws.data)
+
+        for (const personalMessage of welcomeMessage.personal) {
+          ws.send(JSON.stringify(personalMessage));
+        }
+
+        for (const broadcastMessage of welcomeMessage.broadcast) {
+          ws.publish(SERVER_CONFIG.defaultChannelName, JSON.stringify(broadcastMessage));
+        }
+
       },
       message(ws, message: string) {
         //* Todos los mensajes que llegan al servidor de la misma forma
@@ -74,6 +80,12 @@ export const createServer = () => {
         //! Una vez que el cliente se desconecta, "de-suscribir" del canal por defecto
         // console.log(`Cliente desconectado: ${ws.data.clientId}`);
         ws.unsubscribe(SERVER_CONFIG.defaultChannelName);
+
+        const result = handleClientLeft(ws.data.clientId);
+
+        for (const broadcastMessage of result.broadcast) {
+          ws.publish(SERVER_CONFIG.defaultChannelName, JSON.stringify(broadcastMessage));
+        }
       }, // a socket is closed
     }, // handlers
   });
