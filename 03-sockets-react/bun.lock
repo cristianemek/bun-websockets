@@ -8,7 +8,7 @@
         "js-cookie": "^3.0.5",
         "mapbox-gl": "^3.18.1",
         "react": "^19.2.0",
-        "react-dom": "^19.2.0",
+        "react-dom": "^19.2.0"
       },
       "devDependencies": {
         "@eslint/js": "^9.39.1",
@@ -24,9 +24,9 @@
         "globals": "^16.5.0",
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.46.4",
-        "vite": "^7.2.4",
-      },
-    },
+        "vite": "^7.2.4"
+      }
+    }
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.28.6", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-JYgintcMjRiCvS8mMECzaEn+m3PfoQiyqukOMCCVQtoJGYJw8j/8LBJEiqkHLkfwCcs74E3pbAUFNg7d9VNJ+Q=="],
