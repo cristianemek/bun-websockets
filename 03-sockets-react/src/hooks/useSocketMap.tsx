@@ -1,10 +1,13 @@
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 import mapboxgl from 'mapbox-gl';
+import { WebSocketContext } from "../context/WebSocketContext";
 
 mapboxgl.accessToken =
   "pk.eyJ1IjoiZXhhbXBsZXMiLCJhIjoiY203eXd1a3ZzMGV1ejJrcHRvdnVoYng0NCJ9.NzlqpAcLHejzezQqazzI-w#";
 
 export const useSocketMap = () => {
+  const {status, connectToServer} = use(WebSocketContext)
+
   const mapContainer = useRef<HTMLDivElement>(null);
 
   const map = useRef<mapboxgl.Map | null>(null);
@@ -26,5 +29,6 @@ export const useSocketMap = () => {
   return {
     mapContainer,
     map,
+    connectToServer,
   };
 };

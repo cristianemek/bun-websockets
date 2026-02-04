@@ -74,7 +74,6 @@ export const WebSocketProvider = ({ children, url }: Props) => {
     setStatus("offline");
   };
 
-
   const connect = useCallback(() => {
     const ws = new WebSocket(url);
 
@@ -93,25 +92,27 @@ export const WebSocketProvider = ({ children, url }: Props) => {
     });
 
     ws.addEventListener("message", (event) => {
-      const message = JSON.parse(event.data);
-      console.log({ message });
-      //todo: emitir mensajes;
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === "WELCOME") {
+          setSocketId(message.payload.id);
+        }
+
+        messageListenerRef.forEach((listener) => listener(message));
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
     });
 
     return ws;
   }, [url]);
 
-
-  const connectToServer = (
-    name: string,
-    color: string,
-    coords: LatLng
-  ) => {
+  const connectToServer = (name: string, color: string, coords: LatLng) => {
     Cookies.set("name", name);
     Cookies.set("color", color);
     Cookies.set("coords", JSON.stringify(coords));
     connect();
-  }
+  };
 
   const subscribeToMessages = (listener: SocketMessageListener) => {
     messageListenerRef.add(listener);
@@ -119,7 +120,7 @@ export const WebSocketProvider = ({ children, url }: Props) => {
     return () => {
       messageListenerRef.delete(listener);
     };
-  }
+  };
 
   useEffect(() => {
     const ws = connect();

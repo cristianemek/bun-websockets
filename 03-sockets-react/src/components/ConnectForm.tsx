@@ -13,7 +13,6 @@ export const ConnectForm = ({ onSubmit }: Props) => {
     const color = formData.get('color') as string;
 
     if (!name || !color) return;
-    console.log({ name, color });
 
     onSubmit(name, color);
   };
