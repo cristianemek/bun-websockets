@@ -15,6 +15,10 @@
   color: white;
 }
 
+.user-info p {
+  color:white;
+}
+
 h3 {
   margin: 0;
   font-size: 20px;
@@ -30,7 +34,6 @@ p {
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 0.2px;
-  color: black;
 }
 
 .mapboxgl-popup-close-button {

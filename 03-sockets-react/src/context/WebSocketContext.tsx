@@ -56,6 +56,7 @@ interface WebSocketContextState {
 export const WebSocketContext = createContext({} as WebSocketContextState);
 
 const messageListenerRef = new Set<SocketMessageListener>();
+let connecting = false;
 
 interface Props {
   children: ReactNode;
@@ -65,19 +66,26 @@ interface Props {
 export const WebSocketProvider = ({ children, url }: Props) => {
   const [status, setStatus] = useState<ConnectionStatus>("offline");
   const [socketId, setSocketId] = useState<string | null>(null);
+  const shouldReconnectRef = useRef(true);
 
   const socket = useRef<WebSocket | null>(null);
 
   const disconnect = () => {
     socket.current?.close();
     socket.current = null;
+    shouldReconnectRef.current = false;
     setStatus("offline");
   };
 
   const connect = useCallback(() => {
+    if (connecting) return null;
+    connecting = true;
+
     const ws = new WebSocket(url);
+    shouldReconnectRef.current = true;
 
     ws.addEventListener("open", () => {
+      connecting = false;
       socket.current = ws;
       setStatus("connected");
     });
@@ -88,6 +96,8 @@ export const WebSocketProvider = ({ children, url }: Props) => {
     });
 
     ws.addEventListener("error", (event) => {
+      connecting = false;
+      setStatus("error");
       console.log({ customError: event });
     });
 
@@ -108,6 +118,8 @@ export const WebSocketProvider = ({ children, url }: Props) => {
   }, [url]);
 
   const connectToServer = (name: string, color: string, coords: LatLng) => {
+    if (status === "connected" || status === "connecting") return;
+
     Cookies.set("name", name);
     Cookies.set("color", color);
     Cookies.set("coords", JSON.stringify(coords));
@@ -126,7 +138,7 @@ export const WebSocketProvider = ({ children, url }: Props) => {
     const ws = connect();
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
     };
@@ -134,6 +146,9 @@ export const WebSocketProvider = ({ children, url }: Props) => {
 
   // Función básica de re-conexión
   useEffect(() => {
+
+    if (!shouldReconnectRef.current) return;
+
     let interval: ReturnType<typeof setInterval>;
     if (status === "disconnected") {
       interval = setInterval(() => {
@@ -151,9 +166,6 @@ export const WebSocketProvider = ({ children, url }: Props) => {
 
   const send = (message: SocketMessage) => {
     if (!socket.current) throw new Error("Socket not connected");
-    if (status !== "connected")
-      throw new Error("Socket not connected (status)");
-
     const jsonMessage = JSON.stringify(message);
     socket.current.send(jsonMessage);
   };

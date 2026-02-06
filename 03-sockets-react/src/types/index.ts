@@ -3,6 +3,7 @@ export interface Client {
   name: string;
   color: string;
   coords: LatLng;
+  updatedAt?: number;
 }
 
 export interface LatLng {
