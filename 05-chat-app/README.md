@@ -6,6 +6,7 @@
 2. Ejecutar `bun install`
 3. Crear `.env` basado en `.env.template`
 4. Ejecutar `bun run dev`
+5. Ejecutar `bun seed` para poblar la base de datos con datos de ejemplo
 
 ### Probar en el navegador
 

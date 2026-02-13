@@ -4,6 +4,7 @@ import indexHtml from '../public/index.html';
 import { generateUuid } from './utils/generate-uuid';
 import type { WebSocketData } from './types';
 import { handleMessage } from './handlers/message.handler';
+import { handleApiRequest } from './handlers-rest';
 
 export const createServer = () => {
   const server = Bun.serve<WebSocketData>({
@@ -13,7 +14,17 @@ export const createServer = () => {
       '/': indexHtml,
     },
 
-    fetch(req, server) {
+    async fetch(req, server) {
+
+      const response = await handleApiRequest(req);
+
+      if (response) {
+        return response;
+      }
+
+
+
+
       //* Identificar nuestros clientes
       const clientId = generateUuid();
       const upgraded = server.upgrade(req, {
