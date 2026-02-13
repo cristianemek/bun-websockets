@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { Ticket } from '../types/ticket';
 import { formatTicketLabel } from '../utils/tickets';
 import { Panel } from '../components/Panel';
@@ -7,6 +7,8 @@ import { PersonIcon } from '../icons/PersonIcon';
 import { PregnantIcon } from '../icons/PregnantIcon';
 import { WheelChairIcon } from '../icons/WheelChairIcon';
 import { ElderlyCoupleIcon } from '../icons/ElderlyCoupleIcon';
+import { useSocketTicket } from '../hooks/useSocketTicket';
+import type { ServerMessage } from '../types/socket.types';
 
 type TicketRequestVariant = 'normal' | 'preferential';
 
@@ -176,35 +178,38 @@ function TicketAssignedModal({
 }
 
 export function KioskPage() {
+
+  const { createTicket, subscribeToMessages } = useSocketTicket()
+
   const [assignedTicket, setAssignedTicket] = useState<Ticket | null>(null);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
-  const previewTicketsByVariant: Record<TicketRequestVariant, Ticket> = {
-    normal: {
-      id: 'preview-queue-normal',
-      prefix: 'A',
-      number: 12,
-      deskNumber: 0,
-      createdAt: new Date(),
-      servedAt: null,
-    },
-    preferential: {
-      id: 'preview-queue-preferential',
-      prefix: 'P',
-      number: 3,
-      deskNumber: 0,
-      createdAt: new Date(),
-      servedAt: null,
-    },
-  };
+
+  const handleResponse = useCallback((response:ServerMessage) => {
+   
+    switch (response.type) {
+      case 'TICKET_CREATED':
+        setAssignedTicket(response.payload.ticket);
+        setIsTicketModalOpen(true);
+        break;
+      default:
+        break;
+    }
+  },[])
+
+  useEffect(() => {
+    return subscribeToMessages(handleResponse);
+  }, [subscribeToMessages, handleResponse]);
+
+
+
 
   function closeTicketModal() {
     setIsTicketModalOpen(false);
   }
 
   function handleRequestTicket(variant: TicketRequestVariant) {
-    setAssignedTicket(previewTicketsByVariant[variant]);
-    setIsTicketModalOpen(true);
+    createTicket(variant === 'preferential');
   }
 
   function handleRequestNormalTicket() {

@@ -13,7 +13,7 @@ export function DeskSelectPage() {
 
   function handleContinue() {
     if (deskNumber == null) return;
-    navigate('/desk');
+    navigate(`/desk/${deskNumber}`);
   }
 
   return (

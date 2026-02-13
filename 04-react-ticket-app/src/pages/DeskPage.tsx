@@ -1,58 +1,59 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { BigTicket } from '../components/BigTicket';
 import { Button } from '../components/Button';
 import { PageHeader } from '../components/PageHeader';
 import { Panel } from '../components/Panel';
 import { TicketCard } from '../components/TicketCard';
 import type { Ticket } from '../types/ticket';
-
-const previewDeskNumber = 1;
-
-const previewCurrentServing: Ticket = {
-  id: 'preview-current-serving',
-  prefix: 'A',
-  number: 24,
-  deskNumber: previewDeskNumber,
-  createdAt: new Date(),
-  servedAt: null,
-};
-
-const previewLastServedForDesk: Ticket[] = [
-  {
-    id: 'preview-served-1',
-    prefix: 'A',
-    number: 23,
-    deskNumber: previewDeskNumber,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-served-2',
-    prefix: 'A',
-    number: 22,
-    deskNumber: previewDeskNumber,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-served-3',
-    prefix: 'A',
-    number: 21,
-    deskNumber: previewDeskNumber,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-];
+import { useSocketTicket } from '../hooks/useSocketTicket';
+import { useCallback, useEffect, useState } from 'react';
+import type { ServerMessage } from '../types/socket.types';
 
 export function DeskPage() {
   const navigate = useNavigate();
-  const deskNumber = previewDeskNumber;
-  const currentServing = previewCurrentServing;
-  const lastServedForDesk = previewLastServedForDesk.slice(0, 8);
+
+  const {deskNumber} = useParams();
+
+  const {subscribeToMessages, getQueueState, requestNextTicket} = useSocketTicket();
+
+
+  const [currentServing, setCurrentServing] = useState<Ticket | undefined>();
+  const [lastServedForDesk, setLastServedForDesk] = useState<Ticket[]>([]);
 
   const isServing = Boolean(currentServing);
-  const queueCount = 12;
+  const [queueCount, setQueueCount] = useState<number>(0);
   const hasQueue = queueCount > 0;
+
+  const handleResponse = useCallback((message: ServerMessage) => {
+    switch (message.type) {
+      case 'NEXT_TICKET_ASSIGNED':
+        setCurrentServing(message.payload.ticket);
+        if (message.payload.ticket) {
+          setLastServedForDesk((prev) => {
+            const updated = [message.payload.ticket!, ...prev];
+            return updated.slice(0, 8);
+          });
+        }
+        break;
+      case 'QUEUE_STATE':
+        setQueueCount(message.payload.state.pending.combined);
+        break;
+      default:
+        break;
+    }
+  },[])
+
+  useEffect(() => {
+    return subscribeToMessages(handleResponse);
+  }, [subscribeToMessages, handleResponse]);
+
+  useEffect(() => {
+    if (queueCount === 0) {
+      getQueueState();
+    }
+  }, [getQueueState, queueCount])
+
+
 
   function handleChangeDesk() {
     navigate('/desk/select');
@@ -72,14 +73,24 @@ export function DeskPage() {
             description="Componentes típicos del operador."
             footer={
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="button" className="w-full sm:w-auto" disabled>
+                <Button type="button" className="w-full sm:w-auto"
+                  onClick={() => requestNextTicket(+deskNumber!, false)}
+                  disabled={isServing || !hasQueue}
+                >
                   Tomar siguiente ticket
+                </Button>
+
+                 <Button type="button" className="w-full sm:w-auto bg-amber-800/25 text-amber-800"
+                  onClick={() => requestNextTicket(+deskNumber!, false)}
+                  disabled={isServing || !hasQueue}
+                >
+                  Forzar ticket normal
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
                   className="w-full sm:w-auto"
-                  disabled
+                  disabled={!isServing}
                 >
                   Finalizar atención
                 </Button>

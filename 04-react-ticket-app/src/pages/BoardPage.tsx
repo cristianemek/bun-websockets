@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/Button';
 import { WeatherWidget } from '../components/WeatherWidget';
 import { YouTubePlayer } from '../components/YouTubePlayer';
@@ -6,75 +6,10 @@ import type { Ticket } from '../types/ticket';
 import { useNow } from '../hooks/useNow';
 import { formatBoardDate, formatBoardTime } from '../utils/date-formatter';
 import { formatTicketLabel } from '../utils/tickets';
+import { useSocketTicket } from '../hooks/useSocketTicket';
+import type { ServerMessage } from '../types/socket.types';
 
 const YOUTUBE_VIDEO_ID = 'dQw4w9WgXcQ';
-
-const servedTickets: Ticket[] = [
-  {
-    id: 'preview-1',
-    prefix: 'A',
-    number: 22,
-    deskNumber: 1,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-2',
-    prefix: 'A',
-    number: 21,
-    deskNumber: 4,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-3',
-    prefix: 'A',
-    number: 20,
-    deskNumber: 3,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-4',
-    prefix: 'A',
-    number: 19,
-    deskNumber: 2,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-5',
-    prefix: 'A',
-    number: 18,
-    deskNumber: 5,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-6',
-    prefix: 'A',
-    number: 17,
-    deskNumber: 2,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-7',
-    prefix: 'A',
-    number: 16,
-    deskNumber: 1,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-  {
-    id: 'preview-8',
-    prefix: 'A',
-    number: 15,
-    deskNumber: 3,
-    createdAt: new Date(),
-    servedAt: new Date(),
-  },
-];
 
 function getWeatherConfigFromEnv(): {
   latitude: number;
@@ -101,8 +36,29 @@ export function BoardPage() {
   const now = useNow(1000);
   const [isAudioMuted, setIsAudioMuted] = useState(true);
   const weatherConfig = useMemo(() => getWeatherConfigFromEnv(), []);
+  const { subscribeToMessages,getQueueState } = useSocketTicket();
 
-  const servingTickets: Ticket[] = servedTickets;
+  const [servingTickets, setServingTickets] = useState<Ticket[]>([]);
+
+  const handleResponse = useCallback((message: ServerMessage) => {
+    switch (message.type) {
+      case 'QUEUE_STATE':
+        setServingTickets(message.payload.state.recentlyServed);
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeToMessages(handleResponse);
+  }, [subscribeToMessages,handleResponse]);
+
+  useEffect(() => {
+    if (servingTickets.length === 0) {
+      getQueueState();
+    }
+  }, [getQueueState, servingTickets])
 
   return (
     <div className="grid min-h-[calc(100vh-2rem)] items-stretch gap-6 lg:grid-cols-[1fr_420px] lg:gap-8 sm:min-h-[calc(100vh-3rem)]">
