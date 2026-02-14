@@ -4,9 +4,9 @@ export interface ChatMessage {
     id: string;
     groupId?: string;
     receiverId?: string;
-    senderId: Sender;
+    sender: Sender;
     content: string;
-    createdAt: string;
+    createdAt: number;
 }
 
 export interface Sender {

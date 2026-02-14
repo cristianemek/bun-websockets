@@ -14,9 +14,9 @@ export const generateJwtToken = async (userId: string) => {
 }
 
 
-export const validateJwtToken = async (token: string) => {
+export const validateJwtToken = async (token: string): Promise<JwtPayload> => {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET)
-    const { payload } = await jose.jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET));
+    const { payload } = await jose.jwtVerify<JwtPayload>(token, secret);
 
     return payload;
 }
