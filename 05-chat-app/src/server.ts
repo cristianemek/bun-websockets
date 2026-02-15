@@ -96,15 +96,14 @@ export const createServer = () => {
         //* Todos los mensajes que llegan al servidor de la misma forma
         // Se envía a un Handler General
         const response = await handleMessage(message, ws.data);
-        const responseString = JSON.stringify(response);
 
         for (const message of response.personal) {
           ws.send(JSON.stringify(message));
         }
 
-        for (const message of response.personal) {
+        for (const message of response.broadcast) {
           //* Si quisiera enviar a un grupo especifico, al abrir conexion el cliente se suscribiría a un canal con el id del grupo, y aquí publicaríamos en ese canal específico
-          ws.publish(SERVER_CONFIG.defaultChannelName, JSON.stringify(message));
+          ws.publish(response.broadcastTo, JSON.stringify(message));
         }
       },
       close(ws, code, message) {
