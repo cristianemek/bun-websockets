@@ -9,6 +9,10 @@ import { validateJwtToken } from "./utils/jwt-validation";
 import { email } from "zod";
 import { userService } from "./services/user.service";
 import { handleGetGroupMessages } from "./handlers/group-message.handlers";
+import {
+  handleAddConnectedUser,
+  handleRemoveConnectedUser,
+} from "./handlers/connected-users.handler";
 
 export const createServer = () => {
   const server = Bun.serve<WebSocketData>({
@@ -67,12 +71,26 @@ export const createServer = () => {
         ws.subscribe(SERVER_CONFIG.defaultChannelName);
         ws.subscribe(ws.data.userId);
 
+        /*
+         *se deberia de comprobar que un usuario no abra varias conexiones al mismo tiempo, o manejarlo de alguna forma
+         *en el map de usuarios conectados (store), podríamos almacenar un array o contador de conexiones por usuario, y permitir múltiples conexiones (evento desconectado cuando el contador llegue a 0)
+         *o simplemente no permitirlo y cerrar la conexión anterior si se abre una nueva conexión con el mismo usuarioId
+         */
         //! Cuando nos conectamos
         const groupMessages = await handleGetGroupMessages();
 
         ws.send(JSON.stringify(groupMessages));
 
-        //todo notificar que este usuaario se ha conectado a los demás usuarios (publicar en el canal por defecto un mensaje de "usuario conectado")
+        const connectedUsersMessage = handleAddConnectedUser({
+          id: ws.data.userId,
+          name: ws.data.name,
+          email: ws.data.email,
+        });
+        ws.send(JSON.stringify(connectedUsersMessage));
+        ws.publish(
+          SERVER_CONFIG.defaultChannelName,
+          JSON.stringify(connectedUsersMessage),
+        );
       },
       async message(ws, message: string) {
         //* Todos los mensajes que llegan al servidor de la misma forma
@@ -93,7 +111,13 @@ export const createServer = () => {
         //! Una vez que el cliente se desconecta, "de-suscribir" del canal por defecto
         ws.unsubscribe(SERVER_CONFIG.defaultChannelName);
         ws.unsubscribe(ws.data.userId);
-        //todo notificar que este usuario se ha desconectado a los demás usuarios (publicar en el canal por defecto un mensaje de "usuario desconectado")
+
+        //* no se deberia de reconstruir la lista de usuarios cada vez que un usuario se conecta o desconecta, sino mantener una lista actualizada de usuarios conectados en memoria, y simplemente enviar esa lista actualizada a los clientes cada vez que haya un cambio (usuario conectado o desconectado)
+        const connectedUsersMessage = handleRemoveConnectedUser(ws.data.userId);
+        ws.publish(
+          SERVER_CONFIG.defaultChannelName,
+          JSON.stringify(connectedUsersMessage),
+        );
       }, // a socket is closed
     }, // handlers
   });
