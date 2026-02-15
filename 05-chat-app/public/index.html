@@ -51,6 +51,9 @@
       const inputPassword = document.querySelector("#input-password");
       const btnLogin = document.querySelector("#btn-login");
 
+          const selectReceiver = document.querySelector("#select-receiver");
+
+
 
       const createWebSocket = () => {
         const channelId = "mi-canal-personalizado";
@@ -99,13 +102,15 @@
         event.preventDefault();
         if (!messageInput.value && messageInput.value.length === 0) return;
 
+        const receiverId = selectReceiver.value;
+
         const message = {
-          type: 'SEND_GROUP_MESSAGE', //TODO SEND DIREDT MESSAGE
+          type: receiverId === '' ? 'SEND_GROUP_MESSAGE' : 'SEND_DIRECT_MESSAGE',
           payload: {
             content: messageInput.value,
-            //TODO a quien le mandamos el mensaje
+            receiverId: receiverId
+          }
         }
-      }
 
         socket.send(JSON.stringify(message));
         // showMessage(messageInput.value);
@@ -113,8 +118,30 @@
       });
 
       const showMessage = (message) => {
+        const jsonMessage = JSON.parse(message);
+
+        if (jsonMessage.type === 'SEND_CONNECTED_USERS_RESPONSE') {
+          const users = jsonMessage.payload.users;
+          selectReceiver.innerHTML = '';
+
+          const option = document.createElement("option");
+          option.value = '';
+          option.textContent = 'Everyone';
+          selectReceiver.appendChild(option);
+
+          users.forEach(user => {
+            const option = document.createElement("option");
+            option.value = user.id;
+            option.textContent = user.name;
+            selectReceiver.appendChild(option);
+          });
+
+          return;
+        }
+
+
         const pre = document.createElement("pre");
-        pre.innerHTML = JSON.stringify(JSON.parse(message), null, 2);
+        pre.innerHTML = JSON.stringify(jsonMessage, null, 2);
 
         messagesContainer.prepend(pre);
       };
