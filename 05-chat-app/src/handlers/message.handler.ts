@@ -1,7 +1,9 @@
+import { SERVER_CONFIG } from '../config/server-config';
 import {
   messageSchema,
 } from '../schemas/websocket-message.schema';
 import type { HandleResult, WebSocketData } from '../types';
+import { handleDirectMessage, handleGetDirectMessages } from './direct-messages.handlers';
 import { createErrorResponse } from './error.handlers';
 import { handleSendGroupMessage } from './group-message.handlers';
 
@@ -33,7 +35,27 @@ export const handleMessage = async(message: string, webSocketData: WebSocketData
 
         return{
           broadcast: [groupMessage],
-          personal: [groupMessage]
+          personal: [groupMessage],
+          broadcastTo: payload.groupId || SERVER_CONFIG.defaultChannelName
+        }
+      case 'GET_DIRECT_MESSAGES':
+        const directMessages = await handleGetDirectMessages(payload.receiverId, webSocketData.userId)
+        return {
+          personal: [directMessages],
+          broadcast: [],
+          broadcastTo: payload.receiverId
+        }
+      
+      case 'SEND_DIRECT_MESSAGE':
+        const directMessage = await handleDirectMessage({
+          content: payload.content,
+          receiverId: payload.receiverId,
+          senderId: webSocketData.userId,
+        })
+        return {
+          personal: [directMessage],
+          broadcast: [directMessage],
+          broadcastTo: payload.receiverId
         }
 
       default:

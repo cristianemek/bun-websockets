@@ -34,7 +34,7 @@ export type ServerMessage =
 | {
   type: 'SEND_DIRECT_MESSAGES_RESPONSE',
   payload: {
-    recieverId: string;
+    receiverId: string;
     messages: ChatMessage[];
   }
 }
@@ -67,6 +67,5 @@ export type ClientMessage =
 export interface HandleResult {
   personal: ServerMessage[]
   broadcast: ServerMessage[]
-
-  //todo a quien quiero mandar el mensaje
+  broadcastTo: string
 }

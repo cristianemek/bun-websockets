@@ -82,6 +82,84 @@ class ChatMessageService {
   }
 
   //! Mensajes privados
+  async getDirectMessages(senderId: string, receiverId: string): Promise<ChatMessage[]> {
+    const messages = await prisma.directMessage.findMany({
+      where:{
+        receiverId,
+        senderId,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 30,
+    });
+      return messages.map((msg) => ({
+    id: msg.id,
+    content: msg.content,
+    createdAt: msg.createdAt.getTime(),
+    receiverId: receiverId,
+    sender: {
+      id: msg.sender.id,
+      name: msg.sender.name,
+      email: msg.sender.email,
+    },
+  }));
+  }
+
+  async sendDirectMessage(content: string, senderId: string, receiverId: string): Promise<ChatMessage> {
+
+    const directMessage = await prisma.directMessage.create({
+      data: {
+        content,
+        senderId,
+        receiverId,
+      },
+    });
+
+    const message = await prisma.directMessage.findUnique({
+      where: {
+        id: directMessage.id,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+      if (!message) {
+        throw new Error("Message not found after creation");
+      }
+
+    return {
+      id: message.id,
+      content: message.content,
+      createdAt: message.createdAt.getTime(),
+      sender: {
+        id: message.sender.id,
+        name: message.sender.name,
+        email: message.sender.email,
+      },
+    };
+  }
+
+
 }
+
+
+
 
 export const chatMessageService = new ChatMessageService();
